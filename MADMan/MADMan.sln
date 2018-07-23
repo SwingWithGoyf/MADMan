@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27703.2035
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MADMan", "MADMan.csproj", "{4A3F6582-B49C-4381-903A-0A09424DACFA}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4A3F6582-B49C-4381-903A-0A09424DACFA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4A3F6582-B49C-4381-903A-0A09424DACFA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4A3F6582-B49C-4381-903A-0A09424DACFA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4A3F6582-B49C-4381-903A-0A09424DACFA}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {F3AE16E6-DA0B-412F-9696-E76E7D86294A}
+	EndGlobalSection
+EndGlobal
