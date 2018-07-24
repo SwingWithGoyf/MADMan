@@ -11,6 +11,7 @@ namespace DataBot.Dialogs
     [Serializable]
     public struct FilterResult
     {
+        public bool isFilter;   // if true, is a filter, if false, is a slicer
         public string filterName;
         public string filterValue;
     }

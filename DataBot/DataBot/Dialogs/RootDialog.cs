@@ -22,6 +22,7 @@
         private const string DeviceTypeEntity = "DeviceType";
         private static EntityRecommendation deviceType;
         protected Dictionary<string, object> filterValues = new Dictionary<string, object>();
+        protected Dictionary<string, object> slicerValues = new Dictionary<string, object>();
         protected string choice = string.Empty;
         const string deviceTypeKey = "DeviceType";
         const string metricTypeKey = "MetricType";
@@ -64,7 +65,7 @@
 
                 await context.PostAsync(resultMessage);
 
-                context.Call(new FilterPickerDialog(filterValues), this.ResumeAfterFilterPickerDialog);
+                context.Call(new RefinementPickerDialog(filterValues, slicerValues), this.ResumeAfterRefinementPickerDialog);
             }
             else
             {
@@ -81,7 +82,7 @@
 
                 await context.PostAsync(resultMessage);
 
-                context.Call(new FilterPickerDialog(filterValues), this.ResumeAfterFilterPickerDialog);
+                context.Call(new RefinementPickerDialog(filterValues, slicerValues), this.ResumeAfterRefinementPickerDialog);
             }
         }
 
@@ -112,7 +113,7 @@
 
                 await context.PostAsync(resultMessage);
 
-                context.Call(new RefinementPickerDialog(filterValues), this.ResumeAfterFilterPickerDialog);
+                context.Call(new RefinementPickerDialog(filterValues, slicerValues), this.ResumeAfterRefinementPickerDialog);
             }
             else
             {
@@ -129,7 +130,7 @@
 
                 await context.PostAsync(resultMessage);
 
-                context.Call(new RefinementPickerDialog(filterValues), this.ResumeAfterFilterPickerDialog);
+                context.Call(new RefinementPickerDialog(filterValues, slicerValues), this.ResumeAfterRefinementPickerDialog);
             }
         }
 
@@ -246,7 +247,7 @@
 
         private async Task LoopFilterAsync(IDialogContext context)
         {
-            context.Call(new RefinementPickerDialog(filterValues), this.ResumeAfterRefinementPickerDialog);
+            context.Call(new RefinementPickerDialog(filterValues, slicerValues), this.ResumeAfterRefinementPickerDialog);
         }
 
         private async Task ResumeAfterOasisMadDialog(IDialogContext context, IAwaitable<FilterResult> result)
