@@ -6,7 +6,7 @@ using Autofac;
 using Microsoft.Bot.Connector;
 using System.Reflection;
 
-namespace MADMan
+namespace DataBot
 {
     public class WebApiApplication : System.Web.HttpApplication
     {

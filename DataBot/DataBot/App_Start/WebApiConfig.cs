@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web.Http;
 
-namespace MADMan
+namespace DataBot
 {
     public static class WebApiConfig
     {
