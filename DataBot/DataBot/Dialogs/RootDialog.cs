@@ -41,7 +41,7 @@
         public async Task ShowMad(IDialogContext context, IAwaitable<IMessageActivity> activity, LuisResult result)
         {
             var message = await activity;
-            message.Text = $"Let us get the MAD for you...";
+            message.Text = $"Let me get the MAD for you...";
             await context.PostAsync(message.Text);
 
             if (result.TryFindEntity(DeviceTypeEntity, out deviceType))
@@ -89,7 +89,7 @@
         public async Task ShowDad(IDialogContext context, IAwaitable<IMessageActivity> activity, LuisResult result)
         {
             var message = await activity;
-            message.Text = $"Let us get the DAD for you...";
+            message.Text = $"Let me get the DAD for you...";
             await context.PostAsync(message.Text);
 
             if (result.TryFindEntity(DeviceTypeEntity, out deviceType))
@@ -112,7 +112,7 @@
 
                 await context.PostAsync(resultMessage);
 
-                context.Call(new FilterPickerDialog(filterValues), this.ResumeAfterFilterPickerDialog);
+                context.Call(new RefinementPickerDialog(filterValues), this.ResumeAfterFilterPickerDialog);
             }
             else
             {
@@ -129,11 +129,11 @@
 
                 await context.PostAsync(resultMessage);
 
-                context.Call(new FilterPickerDialog(filterValues), this.ResumeAfterFilterPickerDialog);
+                context.Call(new RefinementPickerDialog(filterValues), this.ResumeAfterFilterPickerDialog);
             }
         }
 
-        private async Task<bool> HandleQuitAsync(IDialogContext context)
+        public async Task<bool> HandleQuitAsync(IDialogContext context)
         {
             var message = context.Activity as IMessageActivity;
 
@@ -144,7 +144,7 @@
                 if (message.Text.Equals(command, StringComparison.InvariantCultureIgnoreCase))
                 {
                     context.Wait(MessageReceived);
-                    var msg = $"Sorry you quit the dialog. How may I help you?";
+                    var msg = $"Conversation ended.  Start a new conversation with a question like 'show me the MAD for vr' or 'Show me DAD for hololens'";
                     await context.PostAsync(msg);
                     return true;
                 }
@@ -160,7 +160,7 @@
 
             if (!isQuit)
             {
-                await context.PostAsync("Hi! Try asking me things like 'show me the MAD for vr', 'Show me DAD for hololens'");
+                await context.PostAsync("Hi! Try asking me things like 'show me the MAD for vr' or 'Show me DAD for hololens'");
                 context.Wait(this.MessageReceived);
             }
         }
@@ -193,7 +193,7 @@
             }
         }
 
-        private async Task ResumeAfterFilterPickerDialog(IDialogContext context, IAwaitable<FilterResult> result)
+        private async Task ResumeAfterRefinementPickerDialog(IDialogContext context, IAwaitable<FilterResult> result)
         {
             try
             {
@@ -246,7 +246,7 @@
 
         private async Task LoopFilterAsync(IDialogContext context)
         {
-            context.Call(new FilterPickerDialog(filterValues), this.ResumeAfterFilterPickerDialog);
+            context.Call(new RefinementPickerDialog(filterValues), this.ResumeAfterRefinementPickerDialog);
         }
 
         private async Task ResumeAfterOasisMadDialog(IDialogContext context, IAwaitable<FilterResult> result)

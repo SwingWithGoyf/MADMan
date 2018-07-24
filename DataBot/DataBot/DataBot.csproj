@@ -189,6 +189,7 @@
     <Compile Include="Controllers\MessagesController.cs" />
     <Compile Include="DatabaseInfo.cs" />
     <Compile Include="Dialogs\CustomQuitForm.cs" />
+    <Compile Include="Dialogs\RefinementPickerDialog.cs" />
     <Compile Include="Dialogs\FilterPickerDialog.cs" />
     <Compile Include="Dialogs\FilterValueDialog.cs" />
     <Compile Include="Dialogs\RootDialog.cs" />

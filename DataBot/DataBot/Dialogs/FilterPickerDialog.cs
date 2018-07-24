@@ -22,10 +22,12 @@ namespace DataBot.Dialogs
         protected FilterResult currentFilterChoice;
         protected Dictionary<string, object> filterValues;
         protected readonly List<string> filterOptions = new List<string>() { "Country", "Release", "Is Mainstream", "Customer Type", "Flight Ring" , "Hmd Manufacturer", "Form Factor" };
+        protected bool isFilter = true;
 
-        public FilterPickerDialog(Dictionary<string, object> filterValues)
+        public FilterPickerDialog(Dictionary<string, object> filterValues, bool isFilter)
         {
             this.filterValues = filterValues;
+            this.isFilter = isFilter;
         }
 
         public async Task StartAsync(IDialogContext context)
@@ -42,13 +44,14 @@ namespace DataBot.Dialogs
                     modifiedFilterOptions.Add(filter);
                 }
             }
+            modifiedFilterOptions.Add("Quit");
 
             PromptDialog.Choice<string>(
                 context: context,
                 resume: AfterFilterChoiceAsync,
                 options: modifiedFilterOptions,
                 prompt: "Please select from the options below to apply additional filters:",
-                retry: "Didn't get that",
+                retry: "Sorry, didn't understand that input - try 'help' or 'quit'",
                 attempts: 3,
                 promptStyle: PromptStyle.Auto,
                 descriptions: null
@@ -58,8 +61,13 @@ namespace DataBot.Dialogs
         public async Task AfterFilterChoiceAsync(IDialogContext context, IAwaitable<string> argument)
         {
             var filter = await argument;
-            this.currentFilterChoice.filterName = filter.Replace(filteredText, string.Empty);
-            context.Call(new FilterValueDialog(filter), this.FilterChoiceDialogResumeAfter);
+            var isQuit = await new RootLuisDialog().HandleQuitAsync(context);
+
+            if (!isQuit)
+            {
+                this.currentFilterChoice.filterName = filter.Replace(filteredText, string.Empty);
+                context.Call(new FilterValueDialog(filter), this.FilterChoiceDialogResumeAfter);
+            }
         }
 
         private async Task FilterChoiceDialogResumeAfter(IDialogContext context, IAwaitable<string> result)
