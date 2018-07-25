@@ -61,14 +61,7 @@ namespace DataBot.Dialogs
 
             if (!isQuit)
             {
-                if (filter.Equals(filterSwitchText, StringComparison.OrdinalIgnoreCase))
-                {
-                    context.Done(new FilterResult() { filterName = filter, filterValue = string.Empty });
-                }
-                else
-                {
-                    context.Done(filter);
-                }
+                context.Done(filter);
             }
         }
     }

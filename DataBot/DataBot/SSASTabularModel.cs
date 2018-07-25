@@ -211,9 +211,7 @@ namespace DataBot
 
                 Console.WriteLine(madMeasure.Expression);
 
-                //temp: this isn't working for some reason - data model down?
-                //mad = ExecuteQuery(madMeasure.Expression, userId, algtelPassword, oasisProductEngagamentTable.Name, ssasServer, kvp, databaseName);
-                mad = 42;
+                mad = ExecuteQuery(madMeasure.Expression, userId, algtelPassword, oasisProductEngagamentTable.Name, ssasServer, kvp, databaseName);
             }
 
             return mad;

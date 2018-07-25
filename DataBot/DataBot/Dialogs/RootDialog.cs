@@ -56,7 +56,7 @@
 
                 var resultMessage = context.MakeMessage();
 
-                resultMessage.Text = $"Mad for Oasis is {mad}";
+                resultMessage.Text = $"Mad for Oasis is **{mad}**";
 
                 context.UserData.Clear();
 
@@ -73,7 +73,7 @@
 
                 var resultMessage = context.MakeMessage();
 
-                resultMessage.Text = $"Mad for Hololens is {mad}";
+                resultMessage.Text = $"Mad for Hololens is **{mad}**";
 
                 context.UserData.Clear();
 
@@ -109,7 +109,7 @@
                 context.UserData.SetValue(deviceTypeKey, "Oasis");
                 context.UserData.SetValue(metricTypeKey, "dad");
 
-                resultMessage.Text = $"Dad for Oasis is {dad}";
+                resultMessage.Text = $"Dad for Oasis is **{dad}**";
 
                 await context.PostAsync(resultMessage);
 
@@ -126,7 +126,7 @@
                 context.UserData.SetValue(deviceTypeKey, "Hololens");
                 context.UserData.SetValue(metricTypeKey, "dad");
 
-                resultMessage.Text = $"Dad for Hololens is {dad}";
+                resultMessage.Text = $"Dad for Hololens is **{dad}**";
 
                 await context.PostAsync(resultMessage);
 
@@ -242,6 +242,13 @@
                     }
                     await context.PostAsync(filterString);
 
+                    string slicerString = "Your current slicers are: ";
+                    foreach (var slicer in slicerValues)
+                    {
+                        slicerString += $" slicer = {slicer}" + Environment.NewLine;
+                    }
+                    await context.PostAsync(slicerString);
+
                     await context.PostAsync("Please wait while we apply the filters.");
 
                     DeviceType dt = string.Equals(context.UserData.GetValue<string>(deviceTypeKey), "oasis", StringComparison.OrdinalIgnoreCase) ? DeviceType.Oasis : DeviceType.Hololens;
@@ -250,7 +257,7 @@
 
                     var resultMessage = context.MakeMessage();
 
-                    resultMessage.Text = $"The new value is {newValue}";
+                    resultMessage.Text = $"The new value is **{newValue}**";
 
                     await context.PostAsync(resultMessage);
 
@@ -283,6 +290,13 @@
                         slicerValues.Remove(currentFilterChoice.filterName);
                         await context.PostAsync($"Removing slicer {currentFilterChoice.filterName}");
                     }
+
+                    string filterString = "Your current filters are: ";
+                    foreach (var filter in filterValues.Keys)
+                    {
+                        filterString += $" filter = {filter}, value = {filterValues[filter]}" + Environment.NewLine;
+                    }
+                    await context.PostAsync(filterString);
 
                     string slicerString = "Your current slicers are: ";
                     foreach (var slicer in slicerValues)
