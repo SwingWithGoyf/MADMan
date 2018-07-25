@@ -19,36 +19,44 @@ namespace DataBot.Dialogs
     public class FilterPickerDialog : IDialog<FilterResult>
     {
         const string filteredText = " (filter applied)";
+
+        public const string slicerSwitchText = "Switch to add slicers";
+
         protected FilterResult currentFilterChoice;
         protected Dictionary<string, object> filterValues;
-        protected readonly List<string> filterOptions = new List<string>() { "Country", "Release", "Is Mainstream", "Customer Type", "Flight Ring" , "Hmd Manufacturer", "Form Factor" };
+        protected bool isOasis = true;
 
-        public FilterPickerDialog(Dictionary<string, object> filterValues)
+        public FilterPickerDialog(Dictionary<string, object> filterValues, bool isOasis = true)
         {
             this.filterValues = filterValues;
+            this.isOasis = isOasis;
         }
 
         public async Task StartAsync(IDialogContext context)
         {
             List<string> modifiedFilterOptions = new List<string>();
-            foreach (var filter in filterOptions)
+            List<string> baseOptions = isOasis ? RefinementPickerDialog.oasisFilterOptions : RefinementPickerDialog.holoFilterOptions;
+            foreach (var filter in baseOptions)
             {
                 if (filterValues.ContainsKey(filter))
                 {
-                    modifiedFilterOptions.Add($"{filter}{filteredText}");
+                    string modifiedFilter = $"{filter}{filteredText}";
+                    modifiedFilterOptions.Add(modifiedFilter);
                 }
                 else
                 {
                     modifiedFilterOptions.Add(filter);
                 }
             }
+            modifiedFilterOptions.Add(slicerSwitchText);
+            modifiedFilterOptions.Add("Quit");
 
             PromptDialog.Choice<string>(
                 context: context,
                 resume: AfterFilterChoiceAsync,
                 options: modifiedFilterOptions,
-                prompt: "Please select from the options below to apply additional filters:",
-                retry: "Didn't get that",
+                prompt: $"Please select from the options below to apply additional filters",
+                retry: "Sorry, didn't understand that input - try 'help' or 'quit'",
                 attempts: 3,
                 promptStyle: PromptStyle.Auto,
                 descriptions: null
@@ -58,11 +66,23 @@ namespace DataBot.Dialogs
         public async Task AfterFilterChoiceAsync(IDialogContext context, IAwaitable<string> argument)
         {
             var filter = await argument;
-            this.currentFilterChoice.filterName = filter.Replace(filteredText, string.Empty);
-            context.Call(new FilterValueDialog(filter), this.FilterChoiceDialogResumeAfter);
+            var isQuit = await new RootLuisDialog().HandleQuitAsync(context);
+
+            if (!isQuit)
+            {
+                if (filter.Equals(slicerSwitchText, StringComparison.OrdinalIgnoreCase))
+                {
+                    context.Done(new FilterResult() { filterName = filter, filterValue = string.Empty });
+                }
+                else 
+                {
+                    this.currentFilterChoice.filterName = filter.Replace(filteredText, string.Empty);
+                    context.Call(new FilterValueDialog(filter), this.ResumeAfterFilterChoiceDialog);
+                }
+            }
         }
 
-        private async Task FilterChoiceDialogResumeAfter(IDialogContext context, IAwaitable<string> result)
+        private async Task ResumeAfterFilterChoiceDialog(IDialogContext context, IAwaitable<string> result)
         {
             try
             {

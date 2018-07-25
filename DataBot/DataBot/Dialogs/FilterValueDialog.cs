@@ -12,23 +12,29 @@ namespace DataBot.Dialogs
     public class FilterValueDialog : IDialog<string>
     {
         private string filterName;
+        const string filteredText = " (filter applied)";
 
         public FilterValueDialog(string filterName)
         {
-            this.filterName = filterName;
+            this.filterName = filterName.Replace(filteredText, string.Empty);
         }
 
         public async Task StartAsync(IDialogContext context)
         {
-            await context.PostAsync($"Please enter a filter value for {this.filterName}: (or 'clear' to remove this filter)");
+            await context.PostAsync($"Please enter a filter value for **{this.filterName}**: (or 'clear' to remove this filter, or 'quit' to quit from this conversation entirely)");
             context.Wait(this.MessageReceivedAsync);
         }
 
         private async Task MessageReceivedAsync(IDialogContext context, IAwaitable<IMessageActivity> result)
         {
             var message = await result;
-            string value = message.Text;
-            context.Done(value);
+            var isQuit = await new RootLuisDialog().HandleQuitAsync(context);
+
+            if (!isQuit)
+            {
+                string value = message.Text;
+                context.Done(value);
+            }
         }
     }
 }
