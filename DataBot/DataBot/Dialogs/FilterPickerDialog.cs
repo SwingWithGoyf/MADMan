@@ -11,7 +11,6 @@ namespace DataBot.Dialogs
     [Serializable]
     public struct FilterResult
     {
-        public bool isFilter;   // if true, is a filter, if false, is a slicer
         public string filterName;
         public string filterValue;
     }
@@ -20,30 +19,25 @@ namespace DataBot.Dialogs
     public class FilterPickerDialog : IDialog<FilterResult>
     {
         const string filteredText = " (filter applied)";
-        const string slicerText = " (filter applied)";
 
         public const string slicerSwitchText = "Switch to add slicers";
-        public const string filterSwitchText = "Switch to add filters";
 
         protected FilterResult currentFilterChoice;
         protected Dictionary<string, object> filterValues;
-        protected readonly List<string> filterOptions = new List<string>() { "Country", "Release", "Is Mainstream", "Customer Type", "Flight Ring" , "Hmd Manufacturer", "Form Factor" };
-        protected bool isFilterDialog = true;
 
-        public FilterPickerDialog(Dictionary<string, object> filterValues, bool isFilterDialog)
+        public FilterPickerDialog(Dictionary<string, object> filterValues)
         {
             this.filterValues = filterValues;
-            this.isFilterDialog = isFilterDialog;
         }
 
         public async Task StartAsync(IDialogContext context)
         {
             List<string> modifiedFilterOptions = new List<string>();
-            foreach (var filter in filterOptions)
+            foreach (var filter in RefinementPickerDialog.filterOptions)
             {
                 if (filterValues.ContainsKey(filter))
                 {
-                    string modifiedFilter = isFilterDialog ? $"{filter}{filteredText}" : $"{filter}{slicerText}";
+                    string modifiedFilter = $"{filter}{filteredText}";
                     modifiedFilterOptions.Add(modifiedFilter);
                 }
                 else
@@ -51,23 +45,14 @@ namespace DataBot.Dialogs
                     modifiedFilterOptions.Add(filter);
                 }
             }
-            if (isFilterDialog)
-            {
                 modifiedFilterOptions.Add(slicerSwitchText);
-            }
-            else
-            {
-                modifiedFilterOptions.Add(filterSwitchText);
-            }
             modifiedFilterOptions.Add("Quit");
-
-            string promptText = isFilterDialog ? "filters" : "slicers";
 
             PromptDialog.Choice<string>(
                 context: context,
                 resume: AfterFilterChoiceAsync,
                 options: modifiedFilterOptions,
-                prompt: $"Please select from the options below to apply additional {promptText}",
+                prompt: $"Please select from the options below to apply additional filters",
                 retry: "Sorry, didn't understand that input - try 'help' or 'quit'",
                 attempts: 3,
                 promptStyle: PromptStyle.Auto,
@@ -82,20 +67,14 @@ namespace DataBot.Dialogs
 
             if (!isQuit)
             {
-                if (filter.Equals(slicerSwitchText, StringComparison.OrdinalIgnoreCase) ||
-                    filter.Equals(filterSwitchText, StringComparison.OrdinalIgnoreCase))
+                if (filter.Equals(slicerSwitchText, StringComparison.OrdinalIgnoreCase))
                 {
                     context.Done(new FilterResult() { filterName = filter, filterValue = string.Empty });
                 }
-                else if (isFilterDialog)
+                else 
                 {
                     this.currentFilterChoice.filterName = filter.Replace(filteredText, string.Empty);
                     context.Call(new FilterValueDialog(filter), this.ResumeAfterFilterChoiceDialog);
-                }
-                else
-                {
-                    this.currentFilterChoice.filterName = filter.Replace(filteredText, string.Empty);
-                    context.Done(new FilterResult() { filterName = filter, filterValue = string.Empty, isFilter = false });
                 }
             }
         }
