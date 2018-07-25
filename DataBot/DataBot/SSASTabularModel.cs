@@ -302,6 +302,7 @@ namespace DataBot
                 Console.WriteLine(dadMeasure.Expression);
 
                 dad = ExecuteQuery(dadMeasure.Expression, userId, algtelPassword, oasisProductEngagamentTable.Name, ssasServer, kvp, databaseName);
+                dad = Math.Round(dad, 0);
             }
 
             return dad;
