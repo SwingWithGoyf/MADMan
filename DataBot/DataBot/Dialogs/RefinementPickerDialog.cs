@@ -15,15 +15,18 @@ namespace DataBot.Dialogs
         protected List<string> slicerValues;
         protected bool isFirstRun = true;
         protected bool showFilterDialog = true;
+        protected bool isOasis = true;
 
-        public static List<string> filterOptions = new List<string>() { "Country", "Release", "Is Mainstream", "Customer Type", "Flight Ring", "Hmd Manufacturer", "Form Factor" };
+        public static List<string> holoFilterOptions = new List<string>() { "Country", "Build Release", "Customer Type", "Flight Ring" };
+        public static List<string> oasisFilterOptions = new List<string>() { "Country", "Build Release", "Is Mainstream", "Customer Type", "Flight Ring", "Hmd Manufacturer", "Form Factor" };
 
-        public RefinementPickerDialog(Dictionary<string, object> filterValues, List<string> slicerValues, bool firstRun, bool showFilterDialog = true)
+        public RefinementPickerDialog(Dictionary<string, object> filterValues, List<string> slicerValues, bool firstRun, bool showFilterDialog = true, bool isOasis = true)
         {
             this.filterValues = filterValues;
             this.slicerValues = slicerValues;
             this.isFirstRun = firstRun; // only prompt for filters vs slicers the first time through the flow
             this.showFilterDialog = showFilterDialog;   // show filter dialog by default, but it can change in subsequent entries
+            this.isOasis = isOasis;
         }
 
         public async Task StartAsync(IDialogContext context)
@@ -43,11 +46,11 @@ namespace DataBot.Dialogs
             }
             else if (showFilterDialog)
             {
-                context.Call(new FilterPickerDialog(filterValues), this.ResumeAfterFilterPickerDialog);
+                context.Call(new FilterPickerDialog(filterValues, isOasis), this.ResumeAfterFilterPickerDialog);
             }
             else
             {
-                context.Call(new SlicerPickerDialog(slicerValues), this.ResumeAfterSlicerPickerDialog);
+                context.Call(new SlicerPickerDialog(slicerValues, isOasis), this.ResumeAfterSlicerPickerDialog);
             }
         }
         
@@ -60,11 +63,11 @@ namespace DataBot.Dialogs
             {
                 if (selection.Equals("filters", StringComparison.OrdinalIgnoreCase))
                 {
-                    context.Call(new FilterPickerDialog(filterValues), this.ResumeAfterFilterPickerDialog);
+                    context.Call(new FilterPickerDialog(filterValues, isOasis), this.ResumeAfterFilterPickerDialog);
                 }
                 else
                 {
-                    context.Call(new SlicerPickerDialog(slicerValues), this.ResumeAfterSlicerPickerDialog);
+                    context.Call(new SlicerPickerDialog(slicerValues, isOasis), this.ResumeAfterSlicerPickerDialog);
                 }
             }
         }

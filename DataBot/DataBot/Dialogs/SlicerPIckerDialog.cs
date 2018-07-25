@@ -16,16 +16,19 @@ namespace DataBot.Dialogs
         public const string filterSwitchText = "Switch to add filters";
 
         protected List<string> slicerValues;
+        protected bool isOasis = true;
 
-        public SlicerPickerDialog(List<string> slicerValues)
+        public SlicerPickerDialog(List<string> slicerValues, bool isOasis)
         {
             this.slicerValues = slicerValues;
+            this.isOasis = isOasis;
         }
 
         public async Task StartAsync(IDialogContext context)
         {
             List<string> modifiedSlicerOptions = new List<string>();
-            foreach (var slicer in RefinementPickerDialog.filterOptions)
+            List<string> baseOptions = isOasis ? RefinementPickerDialog.oasisFilterOptions : RefinementPickerDialog.holoFilterOptions;
+            foreach (var slicer in baseOptions)
             {
                 if (slicerValues.Contains(slicer))
                 {

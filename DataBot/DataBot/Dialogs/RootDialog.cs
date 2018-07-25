@@ -24,6 +24,7 @@
         protected Dictionary<string, object> filterValues = new Dictionary<string, object>();
         protected List<string> slicerValues = new List<string>();
         protected string choice = string.Empty;
+        protected bool isCurrentContextOasis = true;
         const string deviceTypeKey = "DeviceType";
         const string metricTypeKey = "MetricType";
 
@@ -52,6 +53,7 @@
 
             if (string.Equals(deviceType.Entity, "vr", StringComparison.OrdinalIgnoreCase) || string.Equals(deviceType.Entity, "oasis", StringComparison.OrdinalIgnoreCase))
             {
+                isCurrentContextOasis = true;
                 var mad = SSASTabularModel.GetMadNumber(new Dictionary<string, object>(), DeviceType.Oasis);
 
                 var resultMessage = context.MakeMessage();
@@ -65,10 +67,11 @@
 
                 await context.PostAsync(resultMessage);
 
-                context.Call(new RefinementPickerDialog(filterValues, slicerValues, true), this.ResumeAfterFilterDialog);
+                context.Call(new RefinementPickerDialog(filterValues, slicerValues, firstRun: true, showFilterDialog: true, isOasis: isCurrentContextOasis), this.ResumeAfterFilterDialog);
             }
             else
             {
+                isCurrentContextOasis = false;
                 var mad = SSASTabularModel.GetMadNumber(new Dictionary<string, object>(), DeviceType.Hololens);
 
                 var resultMessage = context.MakeMessage();
@@ -82,7 +85,7 @@
 
                 await context.PostAsync(resultMessage);
 
-                context.Call(new RefinementPickerDialog(filterValues, slicerValues, true), this.ResumeAfterFilterDialog);
+                context.Call(new RefinementPickerDialog(filterValues, slicerValues, firstRun: true, showFilterDialog: true, isOasis: isCurrentContextOasis), this.ResumeAfterFilterDialog);
             }
         }
 
@@ -100,6 +103,7 @@
 
             if (string.Equals(deviceType.Entity, "vr", StringComparison.OrdinalIgnoreCase) || string.Equals(deviceType.Entity, "oasis", StringComparison.OrdinalIgnoreCase))
             {
+                isCurrentContextOasis = true;
                 var dad = SSASTabularModel.GetDadNumber(new Dictionary<string, object>(), DeviceType.Oasis);
 
                 var resultMessage = context.MakeMessage();
@@ -113,10 +117,11 @@
 
                 await context.PostAsync(resultMessage);
 
-                context.Call(new RefinementPickerDialog(filterValues, slicerValues, true), this.ResumeAfterFilterDialog);
+                context.Call(new RefinementPickerDialog(filterValues, slicerValues, firstRun: true, showFilterDialog: true, isOasis: isCurrentContextOasis), this.ResumeAfterFilterDialog);
             }
             else
             {
+                isCurrentContextOasis = false;
                 var dad = SSASTabularModel.GetDadNumber(new Dictionary<string, object>(), DeviceType.Hololens);
 
                 var resultMessage = context.MakeMessage();
@@ -130,7 +135,7 @@
 
                 await context.PostAsync(resultMessage);
 
-                context.Call(new RefinementPickerDialog(filterValues, slicerValues, true), this.ResumeAfterFilterDialog);
+                context.Call(new RefinementPickerDialog(filterValues, slicerValues, firstRun: true, showFilterDialog: true, isOasis: isCurrentContextOasis), this.ResumeAfterFilterDialog);
             }
         }
 
@@ -207,12 +212,12 @@
                 FilterResult currentFilterChoice = await result;
                 if (currentFilterChoice.filterName.Equals(FilterPickerDialog.slicerSwitchText, StringComparison.OrdinalIgnoreCase))
                 {
-                    context.Call(new RefinementPickerDialog(filterValues, slicerValues, false, false), this.ResumeAfterSlicerDialog);
+                    context.Call(new RefinementPickerDialog(filterValues, slicerValues, firstRun: false, showFilterDialog: false, isOasis: isCurrentContextOasis), this.ResumeAfterSlicerDialog);
                 }
                 else if (currentFilterChoice.filterName.Equals(SlicerPickerDialog.filterSwitchText, StringComparison.OrdinalIgnoreCase))
                 {
                     // special case: user picks the following in first run: slicers > switch to filters
-                    context.Call(new RefinementPickerDialog(filterValues, slicerValues, false, true), this.ResumeAfterFilterDialog);
+                    context.Call(new RefinementPickerDialog(filterValues, slicerValues, firstRun: false, showFilterDialog: true, isOasis: isCurrentContextOasis), this.ResumeAfterFilterDialog);
                 }
                 else if (string.IsNullOrEmpty(currentFilterChoice.filterValue))
                 {
@@ -277,7 +282,7 @@
                 FilterResult currentFilterChoice = await result;
                 if (currentFilterChoice.filterName.Equals(SlicerPickerDialog.filterSwitchText, StringComparison.OrdinalIgnoreCase))
                 {
-                    context.Call(new RefinementPickerDialog(filterValues, slicerValues, false, true), this.ResumeAfterFilterDialog);
+                    context.Call(new RefinementPickerDialog(filterValues, slicerValues, firstRun: false, showFilterDialog: true, isOasis: isCurrentContextOasis), this.ResumeAfterFilterDialog);
                 }
                 else
                 {
@@ -402,7 +407,7 @@
 
         private async Task LoopFilterSlicerAsync(IDialogContext context, bool isFilterDialog = true)
         {
-            context.Call(new RefinementPickerDialog(filterValues, slicerValues, false, isFilterDialog), this.ResumeAfterFilterDialog);
+            context.Call(new RefinementPickerDialog(filterValues, slicerValues, firstRun: false, showFilterDialog: isFilterDialog, isOasis: isCurrentContextOasis), this.ResumeAfterFilterDialog);
         }
 
         private async Task ResumeAfterOasisMadDialog(IDialogContext context, IAwaitable<FilterResult> result)

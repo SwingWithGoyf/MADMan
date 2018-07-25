@@ -24,16 +24,19 @@ namespace DataBot.Dialogs
 
         protected FilterResult currentFilterChoice;
         protected Dictionary<string, object> filterValues;
+        protected bool isOasis = true;
 
-        public FilterPickerDialog(Dictionary<string, object> filterValues)
+        public FilterPickerDialog(Dictionary<string, object> filterValues, bool isOasis = true)
         {
             this.filterValues = filterValues;
+            this.isOasis = isOasis;
         }
 
         public async Task StartAsync(IDialogContext context)
         {
             List<string> modifiedFilterOptions = new List<string>();
-            foreach (var filter in RefinementPickerDialog.filterOptions)
+            List<string> baseOptions = isOasis ? RefinementPickerDialog.oasisFilterOptions : RefinementPickerDialog.holoFilterOptions;
+            foreach (var filter in baseOptions)
             {
                 if (filterValues.ContainsKey(filter))
                 {
