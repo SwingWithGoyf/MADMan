@@ -21,7 +21,7 @@ namespace DataBot.Dialogs
 
         public async Task StartAsync(IDialogContext context)
         {
-            await context.PostAsync($"Please enter a filter value for {this.filterName}: (or 'clear' to remove this filter, or 'quit' to quit from this conversation entirely)");
+            await context.PostAsync($"Please enter a filter value for **{this.filterName}**: (or 'clear' to remove this filter, or 'quit' to quit from this conversation entirely)");
             context.Wait(this.MessageReceivedAsync);
         }
 

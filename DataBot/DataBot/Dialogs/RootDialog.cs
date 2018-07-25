@@ -286,14 +286,14 @@
                     string filterString = "Your current filters are: ";
                     foreach (var filter in filterValues.Keys)
                     {
-                        filterString += $" filter = {filter}, value = {filterValues[filter]}" + Environment.NewLine;
+                        filterString += $" filter name = **{filter}**, fitler value = **{filterValues[filter]}**" + Environment.NewLine;
                     }
                     await context.PostAsync(filterString);
 
                     string slicerString = "Your current slicers are: ";
                     foreach (var slicer in slicerValues)
                     {
-                        slicerString += $" slicer = {slicer}" + Environment.NewLine;
+                        slicerString += $" slicer name = **{slicer}**" + Environment.NewLine;
                     }
                     await context.PostAsync(slicerString);
 
@@ -482,12 +482,6 @@
                         else
                         {
                             filterValues[currentFilterChoice.filterName] = currentFilterChoice.filterValue;
-                        }
-
-                        string filterString = "Your current filters are: ";
-                        foreach (var filter in filterValues.Keys)
-                        {
-                            filterString += $" filter = {filter}, value = {filterValues[filter]}" + Environment.NewLine;
                         }
 
                         await context.PostAsync("Please wait while we apply the filters.");
