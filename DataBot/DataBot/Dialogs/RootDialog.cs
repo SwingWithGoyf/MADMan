@@ -204,67 +204,62 @@
         {
             try
             {
-                try
+                FilterResult currentFilterChoice = await result;
+                if (currentFilterChoice.filterName.Equals(FilterPickerDialog.slicerSwitchText, StringComparison.OrdinalIgnoreCase))
                 {
-                    FilterResult currentFilterChoice = await result;
-                    if (currentFilterChoice.filterName.Equals(FilterPickerDialog.slicerSwitchText, StringComparison.OrdinalIgnoreCase))
+                    context.Call(new RefinementPickerDialog(filterValues, slicerValues, false, false), this.ResumeAfterSlicerDialog);
+                }
+                else if (currentFilterChoice.filterName.Equals(SlicerPickerDialog.filterSwitchText, StringComparison.OrdinalIgnoreCase))
+                {
+                    // special case: user picks the following in first run: slicers > switch to filters
+                    context.Call(new RefinementPickerDialog(filterValues, slicerValues, false, true), this.ResumeAfterFilterDialog);
+                }
+                else if (string.IsNullOrEmpty(currentFilterChoice.filterValue))
+                {
+                    // special case: user picks slicer in the first run, filter value will be blank
+                    await ResumeAfterSlicerDialog(context, result);
+                }
+                else
+                {
+                    if (!filterValues.ContainsKey(currentFilterChoice.filterName) && !currentFilterChoice.filterValue.Equals("clear", StringComparison.OrdinalIgnoreCase))
                     {
-                        context.Call(new RefinementPickerDialog(filterValues, slicerValues, false, false), this.ResumeAfterSlicerDialog);
+                        filterValues.Add(currentFilterChoice.filterName, currentFilterChoice.filterValue);
                     }
-                    else if (currentFilterChoice.filterName.Equals(SlicerPickerDialog.filterSwitchText, StringComparison.OrdinalIgnoreCase))
+                    else if (currentFilterChoice.filterValue.Equals("clear", StringComparison.OrdinalIgnoreCase))
                     {
-                        // special case: user picks the following in first run: slicers > switch to filters
-                        context.Call(new RefinementPickerDialog(filterValues, slicerValues, false, true), this.ResumeAfterFilterDialog);
-                    }
-                    else if (string.IsNullOrEmpty(currentFilterChoice.filterValue))
-                    {
-                        // special case: user picks slicer in the first run, filter value will be blank
-                        await ResumeAfterSlicerDialog(context, result);
+                        filterValues.Remove(currentFilterChoice.filterName);
+                        await context.PostAsync($"Removing filter {currentFilterChoice.filterName}");
                     }
                     else
                     {
-                        if (!filterValues.ContainsKey(currentFilterChoice.filterName) && !currentFilterChoice.filterValue.Equals("clear", StringComparison.OrdinalIgnoreCase))
-                        {
-                            filterValues.Add(currentFilterChoice.filterName, currentFilterChoice.filterValue);
-                        }
-                        else if (currentFilterChoice.filterValue.Equals("clear", StringComparison.OrdinalIgnoreCase))
-                        {
-                            filterValues.Remove(currentFilterChoice.filterName);
-                            await context.PostAsync($"Removing filter {currentFilterChoice.filterName}");
-                        }
-                        else
-                        {
-                            filterValues[currentFilterChoice.filterName] = currentFilterChoice.filterValue;
-                        }
-
-                        string filterString = "Your current filters are: ";
-                        foreach (var filter in filterValues.Keys)
-                        {
-                            filterString += $" filter = {filter}, value = {filterValues[filter]}" + Environment.NewLine;
-                        }
-                        await context.PostAsync(filterString);
-
-                        await context.PostAsync("Please wait while we apply the filters.");
-
-                        DeviceType dt = string.Equals(context.UserData.GetValue<string>(deviceTypeKey), "oasis", StringComparison.OrdinalIgnoreCase) ? DeviceType.Oasis : DeviceType.Hololens;
-
-                        var newValue = string.Equals(context.UserData.GetValue<string>(metricTypeKey), "mad", StringComparison.OrdinalIgnoreCase) ? SSASTabularModel.GetMadNumber(filterValues, dt) : SSASTabularModel.GetDadNumber(filterValues, dt);
-
-                        var resultMessage = context.MakeMessage();
-
-                        resultMessage.Text = $"The new value is {newValue}";
-
-                        await context.PostAsync(resultMessage);
+                        filterValues[currentFilterChoice.filterName] = currentFilterChoice.filterValue;
                     }
-                }
-                catch (TooManyAttemptsException)
-                {
-                    await context.PostAsync("I'm sorry, I'm having issues understanding you. Let's try again.");
+
+                    string filterString = "Your current filters are: ";
+                    foreach (var filter in filterValues.Keys)
+                    {
+                        filterString += $" filter = {filter}, value = {filterValues[filter]}" + Environment.NewLine;
+                    }
+                    await context.PostAsync(filterString);
+
+                    await context.PostAsync("Please wait while we apply the filters.");
+
+                    DeviceType dt = string.Equals(context.UserData.GetValue<string>(deviceTypeKey), "oasis", StringComparison.OrdinalIgnoreCase) ? DeviceType.Oasis : DeviceType.Hololens;
+
+                    var newValue = string.Equals(context.UserData.GetValue<string>(metricTypeKey), "mad", StringComparison.OrdinalIgnoreCase) ? SSASTabularModel.GetMadNumber(filterValues, dt) : SSASTabularModel.GetDadNumber(filterValues, dt);
+
+                    var resultMessage = context.MakeMessage();
+
+                    resultMessage.Text = $"The new value is {newValue}";
+
+                    await context.PostAsync(resultMessage);
+
+                    await LoopFilterSlicerAsync(context);
                 }
             }
-            finally
+            catch (TooManyAttemptsException)
             {
-                await LoopFilterSlicerAsync(context);
+                await context.PostAsync("I'm sorry, I'm having issues understanding you. Let's try again.");
             }
         }
 
@@ -272,44 +267,42 @@
         {
             try
             {
-                try
+                FilterResult currentFilterChoice = await result;
+                if (currentFilterChoice.filterName.Equals(SlicerPickerDialog.filterSwitchText, StringComparison.OrdinalIgnoreCase))
                 {
-                    FilterResult currentFilterChoice = await result;
-                    if (currentFilterChoice.filterName.Equals(SlicerPickerDialog.filterSwitchText, StringComparison.OrdinalIgnoreCase))
+                    context.Call(new RefinementPickerDialog(filterValues, slicerValues, false, true), this.ResumeAfterFilterDialog);
+                }
+                else
+                {
+                    if (!slicerValues.Contains(currentFilterChoice.filterName))
                     {
-                        context.Call(new RefinementPickerDialog(filterValues, slicerValues, false, true), this.ResumeAfterFilterDialog);
+                        slicerValues.Add(currentFilterChoice.filterName);
                     }
                     else
                     {
-                        if (!slicerValues.Contains(currentFilterChoice.filterName))
-                        {
-                            slicerValues.Add(currentFilterChoice.filterName);
-                        }
-                        else
-                        {
-                            slicerValues.Remove(currentFilterChoice.filterName);
-                            await context.PostAsync($"Removing slicer {currentFilterChoice.filterName}");
-                        }
+                        slicerValues.Remove(currentFilterChoice.filterName);
+                        await context.PostAsync($"Removing slicer {currentFilterChoice.filterName}");
+                    }
 
-                        string slicerString = "Your current slicers are: ";
-                        foreach (var slicer in slicerValues)
-                        {
-                            slicerString += $" slicer = {slicer}" + Environment.NewLine;
-                        }
-                        await context.PostAsync(slicerString);
+                    string slicerString = "Your current slicers are: ";
+                    foreach (var slicer in slicerValues)
+                    {
+                        slicerString += $" slicer = {slicer}" + Environment.NewLine;
+                    }
+                    await context.PostAsync(slicerString);
 
-                        await context.PostAsync("Please wait while we apply the slicers.");
+                    await context.PostAsync("Please wait while we apply the slicers.");
 
-                        //TODO: insert code to take list of slicers, and return back data in the form
+                    //TODO: insert code to take list of slicers, and return back data in the form
 
-                        // Dictionary<csv string of slicers, int>
+                    // Dictionary<csv string of slicers, int>
 
-                        //DeviceType dt = string.Equals(context.UserData.GetValue<string>(deviceTypeKey), "oasis", StringComparison.OrdinalIgnoreCase) ? DeviceType.Oasis : DeviceType.Hololens;
+                    //DeviceType dt = string.Equals(context.UserData.GetValue<string>(deviceTypeKey), "oasis", StringComparison.OrdinalIgnoreCase) ? DeviceType.Oasis : DeviceType.Hololens;
 
-                        //var newValue = string.Equals(context.UserData.GetValue<string>(metricTypeKey), "mad", StringComparison.OrdinalIgnoreCase) ? SSASTabularModel.GetMadNumber(filterValues, dt) : SSASTabularModel.GetDadNumber(filterValues, dt);
+                    //var newValue = string.Equals(context.UserData.GetValue<string>(metricTypeKey), "mad", StringComparison.OrdinalIgnoreCase) ? SSASTabularModel.GetMadNumber(filterValues, dt) : SSASTabularModel.GetDadNumber(filterValues, dt);
 
-                        //START TEMP PLACEHOLDER CODE
-                        Dictionary<string, int> groupByData = new Dictionary<string, int>()
+                    //START TEMP PLACEHOLDER CODE
+                    Dictionary<string, int> groupByData = new Dictionary<string, int>()
                         {
                             { "Canada,Acer,true", 14 },
                             { "Canada,Acer,false", 57 },
@@ -329,29 +322,26 @@
                             { "Argentina,Samsung,false", 277 }
                         };
 
-                        var tableResponse = BuildGroupByTable(
-                            new List<string>() { "Country", "Manufacturer", "IsMainstream" },
-                            groupByData);
+                    var tableResponse = BuildGroupByTable(
+                        new List<string>() { "Country", "Manufacturer", "IsMainstream" },
+                        groupByData);
 
-                        //END TEMP PLACEHOLDER CODE
+                    //END TEMP PLACEHOLDER CODE
 
-                        var resultMessage = context.MakeMessage();
+                    var resultMessage = context.MakeMessage();
 
-                        resultMessage.Text = $"{tableResponse}";
+                    resultMessage.Text = $"{tableResponse}";
 
-                        await context.PostAsync("The data with the requested grouping is: ");
-                        await context.PostAsync(resultMessage);
-                    }
-                }
-                catch (TooManyAttemptsException)
-                {
-                    await context.PostAsync("I'm sorry, I'm having issues understanding you. Let's try again.");
+                    await context.PostAsync("The data with the requested grouping is: ");
+                    await context.PostAsync(resultMessage);
+                    await LoopFilterSlicerAsync(context, false);
                 }
             }
-            finally
+            catch (TooManyAttemptsException)
             {
-                await LoopFilterSlicerAsync(context, false);
+                await context.PostAsync("I'm sorry, I'm having issues understanding you. Let's try again.");
             }
+
         }
 
         private string BuildGroupByTable(List<string> headers, Dictionary<string, int> groupByData)

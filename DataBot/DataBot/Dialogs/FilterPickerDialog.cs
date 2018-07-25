@@ -45,7 +45,7 @@ namespace DataBot.Dialogs
                     modifiedFilterOptions.Add(filter);
                 }
             }
-                modifiedFilterOptions.Add(slicerSwitchText);
+            modifiedFilterOptions.Add(slicerSwitchText);
             modifiedFilterOptions.Add("Quit");
 
             PromptDialog.Choice<string>(
