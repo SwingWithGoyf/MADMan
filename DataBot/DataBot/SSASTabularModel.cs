@@ -133,7 +133,7 @@ namespace DataBot
             return relationship;
         }
 
-        public static void CreateNewMeasure(string measureName, string measureDescription, Dictionary<string, object> filterKeyValuePairs, DeviceType deviceType)
+        public static void CreateNewMadMeasure(string measureName, string measureDescription, Dictionary<string, object> filterKeyValuePairs, DeviceType deviceType)
         {
             var algtelPassword = KeyVaultUtil.GetSecretInPlaintext(KeyVaultUtil.SharedAccountName);
 
@@ -167,7 +167,15 @@ namespace DataBot
                 StringBuilder stbr = new StringBuilder();
                 foreach (var k in filterKeyValuePairs)
                 {
-                    stbr.Append($"'{tableName}'[" + k.Key + "] = \"" + k.Value + "\"");
+                    if (k.Key == "Is Mainstream")
+                    {
+                        stbr.Append($"'{tableName}'[" + k.Key + "] = " + k.Value);
+                    }
+                    else
+                    {
+                        stbr.Append($"'{tableName}'[" + k.Key + "] = \"" + k.Value + "\"");                       
+                    }
+
                     stbr.Append(" , ");
                 }
 
@@ -175,13 +183,128 @@ namespace DataBot
                 str = str.TrimEnd();
                 str = str.Remove(str.LastIndexOf(","));
 
-                string newMadMeasureExpression = $"CALCULATE ( [Unique PCs],  DATESBETWEEN(Dates[Date ], MAX(Dates[Current Period Start]), MAX(Dates[Date ])), {str})";
+                string oldMadMeasureName = deviceType == DeviceType.Hololens ? "MAD (R28)" : "PC MAD (R28)";
 
-                oasisProductEngagamentTable.Measures.Add(CreateMeasure(measureName, newMadMeasureExpression, measureDescription, @"[Measures]\PC Counting"));
+                var oldMadMeasure = oasisProductEngagamentTable.Measures.Where(e => e.Name == oldMadMeasureName).FirstOrDefault();
+
+                string newMadMeasureExpression = $"{oldMadMeasure.Expression.Remove(oldMadMeasure.Expression.LastIndexOf(")"))}, {str})";
+
+                string displayFolder = deviceType == DeviceType.Hololens ? @"[Measures]\Device Count" : @"[Measures]\PC Counting";
+
+                oasisProductEngagamentTable.Measures.Add(CreateMeasure(measureName, newMadMeasureExpression, measureDescription, displayFolder));
 
                 tabularDatabase.Model.SaveChanges();
             }
         }
+
+        public static void CreateNewDadMeasure(string measureName, string measureDescription, Dictionary<string, object> filterKeyValuePairs, DeviceType deviceType)
+        {
+            var algtelPassword = KeyVaultUtil.GetSecretInPlaintext(KeyVaultUtil.SharedAccountName);
+
+            string userId = KeyVaultUtil.SharedAccountName + "@microsoft.com";
+
+            string ssasServer = "asazure://centralus.asazure.windows.net/datapipelinesaas";
+
+            string ConnectionString = $"Password={algtelPassword};Persist Security Info=True;User ID={userId};Data Source = " + ssasServer + ";";
+
+            using (Microsoft.AnalysisServices.Tabular.Server server = new Microsoft.AnalysisServices.Tabular.Server())
+            {
+                server.Connect(ConnectionString);
+
+                string databaseName = deviceType == DeviceType.Hololens ? "HoloLensHackathon" : "OasisHackathon";
+
+                Microsoft.AnalysisServices.Tabular.Database tabularDatabase = null;
+
+                tabularDatabase = server.Databases.FindByName(databaseName);
+
+                string tableName = deviceType == DeviceType.Hololens ? "HoloLens Product Engagement" : "Oasis Product Engagement";
+
+                var oasisProductEngagementTable = tabularDatabase.Model.Tables.Find(tableName);
+
+                var newDadMeasure = oasisProductEngagementTable.Measures.Where(e => e.Name == measureName).FirstOrDefault();
+
+                if (newDadMeasure != null)
+                {
+                    oasisProductEngagementTable.Measures.Remove(newDadMeasure);
+                }
+
+                StringBuilder stbr = new StringBuilder();
+                foreach (var k in filterKeyValuePairs)
+                {
+                    if (k.Key == "Is Mainstream")
+                    {
+                        stbr.Append($"'{tableName}'[" + k.Key + "] = " + k.Value);
+                    }
+                    else
+                    {
+                        stbr.Append($"'{tableName}'[" + k.Key + "] = \"" + k.Value + "\"");
+                    }
+
+                    stbr.Append(" , ");
+                }
+
+                string str = stbr.ToString();
+                str = str.TrimEnd();
+                str = str.Remove(str.LastIndexOf(","));
+
+                string oldDadMeasureName = deviceType == DeviceType.Hololens ? "DAD (R28)" : "PC DAD (R28)";
+
+                var oldDadMeasure = oasisProductEngagementTable.Measures.Where(e => e.Name == oldDadMeasureName).FirstOrDefault();
+
+                string newDadMeasureExpression = string.Empty;
+
+                if (deviceType == DeviceType.Hololens)
+                {
+                    newDadMeasureExpression = GetLatestDadExpression(oldDadMeasure.Expression, filterKeyValuePairs, tableName);
+                }
+                else
+                {
+                    string oldDadMeasureExpression = oldDadMeasure.Expression;
+                    oldDadMeasureExpression = oldDadMeasureExpression.Substring(oldDadMeasureExpression.IndexOf("AVERAGEX"));
+                    oldDadMeasureExpression = oldDadMeasureExpression.Remove(oldDadMeasureExpression.LastIndexOf(")"));
+
+                    newDadMeasureExpression = GetLatestDadExpression(oldDadMeasureExpression, filterKeyValuePairs, tableName);
+                }
+                              
+                string displayFolder = deviceType == DeviceType.Hololens ? @"[Measures]\Device Count" : @"[Measures]\PC Counting";
+
+                oasisProductEngagementTable.Measures.Add(CreateMeasure(measureName, newDadMeasureExpression, measureDescription, displayFolder));
+
+                tabularDatabase.Model.SaveChanges();
+            }
+        }
+
+        private static string GetLatestDadExpression(string oldExpression, Dictionary<string, object> dict, string tableName)
+        {
+            var indexToReplace = oldExpression.LastIndexOf(",");
+            string s = oldExpression.Substring(indexToReplace + 1);
+            s = s.Remove(s.LastIndexOf(")"));
+
+            string newQuery = $", CALCULATE({s}, ";
+
+            StringBuilder stbr = new StringBuilder();
+            foreach (var k in dict)
+            {
+                if (k.Key == "Is Mainstream")
+                {
+                    stbr.Append($"'{tableName}'[" + k.Key + "] = " + k.Value);
+                }
+                else
+                {
+                    stbr.Append($"'{tableName}'[" + k.Key + "] = \"" + k.Value + "\"");
+                }
+                stbr.Append(" , ");
+            }
+
+            string str = stbr.ToString();
+            str = str.TrimEnd();
+            str = str.Remove(str.LastIndexOf(","));
+
+            newQuery += str + "))";
+
+            return oldExpression.Substring(0, indexToReplace) + newQuery;
+        }
+
 
         public static double ExecuteQuery(string queryString, string userId, string password, string tableName, string ssasServer, Dictionary<string, object> kvp, string databaseName)
         {
@@ -231,6 +354,160 @@ namespace DataBot
             }
 
             return madDad;
+        }
+
+        public static SortedDictionary<string, double> ExecuteGroupByMad(List<string> slicerList, Dictionary<string, object> filterList, DeviceType deviceType)
+        {
+            SortedDictionary<string, double> madDictionary = new SortedDictionary<string, double>();
+
+            var algtelPassword = KeyVaultUtil.GetSecretInPlaintext(KeyVaultUtil.SharedAccountName);
+
+            string userId = KeyVaultUtil.SharedAccountName + "@microsoft.com";
+
+            string ssasServer = "asazure://centralus.asazure.windows.net/datapipelinesaas";
+
+            string ConnectionString = $"Password={algtelPassword};Persist Security Info=True;User ID={userId};Data Source = " + ssasServer + ";";
+
+            using (Microsoft.AnalysisServices.Tabular.Server server = new Microsoft.AnalysisServices.Tabular.Server())
+            {
+                server.Connect(ConnectionString);
+
+                string databaseName = deviceType == DeviceType.Hololens ? "HoloLensHackathon" : "OasisHackathon";
+
+                Microsoft.AnalysisServices.Tabular.Database tabularDatabase = null;
+
+                tabularDatabase = server.Databases.FindByName(databaseName);
+
+                string tableName = deviceType == DeviceType.Hololens ? "HoloLens Product Engagement" : "Oasis Product Engagement";
+
+                var oasisProductEngagamentTable = tabularDatabase.Model.Tables.Find(tableName);
+
+                string measureName = deviceType == DeviceType.Hololens ? "MAD (R28)" : "PC MAD (R28)";
+
+                var madMeasure = oasisProductEngagamentTable.Measures.Where(e => e.Name == measureName).FirstOrDefault();
+
+                StringBuilder stbr = new StringBuilder();
+
+                foreach (var slicer in slicerList)
+                {
+                    stbr.Append($"'{tableName}'[" + slicer + "]");
+                    stbr.Append(" , ");
+                }
+
+                string str = stbr.ToString();
+                str = str.TrimEnd();
+                str = str.Remove(str.LastIndexOf(","));
+
+                string queryString = $"EVALUATE SUMMARIZE('{tableName}', {str}, \"Group by measure\"," + madMeasure.Expression + ")";
+
+                string msolapConnectionString = $"Provider=MSOLAP;Data Source={ssasServer};Initial Catalog={databaseName};User ID = {userId};Password = {algtelPassword};Persist Security Info=True; Impersonation Level=Impersonate;";
+
+                using (var connection = new OleDbConnection(msolapConnectionString))
+                {
+                    connection.Open();
+                    using (var command = new OleDbCommand(queryString, connection))
+                    {
+                        using (var reader = command.ExecuteReader())
+                        {
+                            int columns = reader.FieldCount;
+
+                            while (reader.Read())
+                            {
+                                string keyString = string.Empty;
+                                for (int i = 0; i < columns - 1; i++)
+                                {
+                                    keyString += reader[i].ToString() + ", ";
+                                }
+
+                                keyString = keyString.TrimEnd();
+                                keyString = keyString.Remove(keyString.LastIndexOf(","));
+
+                                madDictionary.Add(keyString, double.Parse(reader[columns - 1].ToString()));
+                            }
+                        }
+                    }
+                }
+            }
+
+            return madDictionary;
+        }
+
+        public static SortedDictionary<string, double> ExecuteGroupByDad(List<string> slicerList, Dictionary<string, object> filterList, DeviceType deviceType)
+        {
+            SortedDictionary<string, double> madDictionary = new SortedDictionary<string, double>();
+
+            var algtelPassword = KeyVaultUtil.GetSecretInPlaintext(KeyVaultUtil.SharedAccountName);
+
+            string userId = KeyVaultUtil.SharedAccountName + "@microsoft.com";
+
+            string ssasServer = "asazure://centralus.asazure.windows.net/datapipelinesaas";
+
+            string ConnectionString = $"Password={algtelPassword};Persist Security Info=True;User ID={userId};Data Source = " + ssasServer + ";";
+
+            using (Microsoft.AnalysisServices.Tabular.Server server = new Microsoft.AnalysisServices.Tabular.Server())
+            {
+                server.Connect(ConnectionString);
+
+                string databaseName = deviceType == DeviceType.Hololens ? "HoloLensHackathon" : "OasisHackathon";
+
+                Microsoft.AnalysisServices.Tabular.Database tabularDatabase = null;
+
+                tabularDatabase = server.Databases.FindByName(databaseName);
+
+                string tableName = deviceType == DeviceType.Hololens ? "HoloLens Product Engagement" : "Oasis Product Engagement";
+
+                var oasisProductEngagamentTable = tabularDatabase.Model.Tables.Find(tableName);
+
+                string measureName = deviceType == DeviceType.Hololens ? "DAD (R28)" : "PC DAD (R28)";
+
+                var madMeasure = oasisProductEngagamentTable.Measures.Where(e => e.Name == measureName).FirstOrDefault();
+
+                StringBuilder stbr = new StringBuilder();
+
+                foreach (var slicer in slicerList)
+                {
+                    stbr.Append($"'{tableName}'[" + slicer + "]");
+                    stbr.Append(" , ");
+                }
+
+                string str = stbr.ToString();
+                str = str.TrimEnd();
+                str = str.Remove(str.LastIndexOf(","));
+
+                string queryString = $"EVALUATE SUMMARIZE('{tableName}', {str}, \"Group by measure\"," + madMeasure.Expression + ")";
+
+                string msolapConnectionString = $"Provider=MSOLAP;Data Source={ssasServer};Initial Catalog={databaseName};User ID = {userId};Password = {algtelPassword};Persist Security Info=True; Impersonation Level=Impersonate;";
+
+                using (var connection = new OleDbConnection(msolapConnectionString))
+                {
+                    connection.Open();
+                    using (var command = new OleDbCommand(queryString, connection))
+                    {
+                        using (var reader = command.ExecuteReader())
+                        {
+                            int columns = reader.FieldCount;
+
+                            while (reader.Read())
+                            {
+                                string keyString = string.Empty;
+                                for (int i = 0; i < columns - 1; i++)
+                                {
+                                    keyString += reader[i].ToString() + ", ";
+                                }
+
+                                keyString = keyString.TrimEnd();
+                                keyString = keyString.Remove(keyString.LastIndexOf(","));
+
+                                double value = double.Parse(reader[columns - 1].ToString());
+                                value = Math.Round(value, 0);
+                                madDictionary.Add(keyString, value);
+                            }
+                        }
+                    }
+                }
+            }
+
+            return madDictionary;
         }
 
         public static double GetMadNumber(Dictionary<string, object> kvp, DeviceType deviceType)
