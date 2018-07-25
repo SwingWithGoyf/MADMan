@@ -211,6 +211,16 @@
                     {
                         context.Call(new RefinementPickerDialog(filterValues, slicerValues, false, false), this.ResumeAfterSlicerDialog);
                     }
+                    else if (currentFilterChoice.filterName.Equals(SlicerPickerDialog.filterSwitchText, StringComparison.OrdinalIgnoreCase))
+                    {
+                        // special case: user picks the following in first run: slicers > switch to filters
+                        context.Call(new RefinementPickerDialog(filterValues, slicerValues, false, true), this.ResumeAfterFilterDialog);
+                    }
+                    else if (string.IsNullOrEmpty(currentFilterChoice.filterValue))
+                    {
+                        // special case: user picks slicer in the first run, filter value will be blank
+                        await ResumeAfterSlicerDialog(context, result);
+                    }
                     else
                     {
                         if (!filterValues.ContainsKey(currentFilterChoice.filterName) && !currentFilterChoice.filterValue.Equals("clear", StringComparison.OrdinalIgnoreCase))
@@ -301,7 +311,6 @@
                         //START TEMP PLACEHOLDER CODE
                         Dictionary<string, int> groupByData = new Dictionary<string, int>()
                         {
-                            { "Country,Manufacturer,IsMainstream", 0},
                             { "Canada,Acer,true", 14 },
                             { "Canada,Acer,false", 57 },
                             { "Canada,Samsung,true", 77 },
@@ -328,8 +337,9 @@
 
                         var resultMessage = context.MakeMessage();
 
-                        resultMessage.Text = $"The grouped data is {tableResponse}";
+                        resultMessage.Text = $"{tableResponse}";
 
+                        await context.PostAsync("The data with the requested grouping is: ");
                         await context.PostAsync(resultMessage);
                     }
                 }
@@ -364,7 +374,7 @@
                 }
                 tableString += " Value |" + Environment.NewLine;
 
-                tableString = "| ";
+                tableString += "| ";
                 foreach (string columnName in headers)
                 {
                     tableString += "--- |";
@@ -375,7 +385,7 @@
                 foreach (var groupByColumns in groupByData.Keys)
                 {
                     tableString += "| ";
-                    foreach (var cellValue in groupByColumns.Split())
+                    foreach (var cellValue in groupByColumns.Split(','))
                     {
                         tableString += cellValue + " |";
                     }
