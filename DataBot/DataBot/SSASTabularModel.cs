@@ -133,6 +133,29 @@ namespace DataBot
             return relationship;
         }
 
+        private static string GetStringForGroupBy(string tableName, Dictionary<string, object> filterKeyValuePairs)
+        {
+            StringBuilder stbr = new StringBuilder();
+            foreach (var k in filterKeyValuePairs)
+            {
+                if (k.Key == "Is Mainstream")
+                {
+                    stbr.Append($"'{tableName}'[" + k.Key + "] = " + k.Value);
+                }
+                else
+                {
+                    stbr.Append($"'{tableName}'[" + k.Key + "] = \"" + k.Value + "\"");
+                }
+                stbr.Append(" && ");
+            }
+
+            string str = stbr.ToString();
+            str = str.TrimEnd();
+            str = str.Remove(str.LastIndexOf("&&"));
+
+            return $"FILTER('{tableName}', {str})";
+        }
+
         public static void CreateNewMadMeasure(string measureName, string measureDescription, Dictionary<string, object> filterKeyValuePairs, DeviceType deviceType)
         {
             var algtelPassword = KeyVaultUtil.GetSecretInPlaintext(KeyVaultUtil.SharedAccountName);
@@ -173,7 +196,7 @@ namespace DataBot
                     }
                     else
                     {
-                        stbr.Append($"'{tableName}'[" + k.Key + "] = \"" + k.Value + "\"");                       
+                        stbr.Append($"'{tableName}'[" + k.Key + "] = \"" + k.Value + "\"");
                     }
 
                     stbr.Append(" , ");
@@ -265,7 +288,7 @@ namespace DataBot
 
                     newDadMeasureExpression = GetLatestDadExpression(oldDadMeasureExpression, filterKeyValuePairs, tableName);
                 }
-                              
+
                 string displayFolder = deviceType == DeviceType.Hololens ? @"[Measures]\Device Count" : @"[Measures]\PC Counting";
 
                 oasisProductEngagementTable.Measures.Add(CreateMeasure(measureName, newDadMeasureExpression, measureDescription, displayFolder));
@@ -398,7 +421,9 @@ namespace DataBot
                 str = str.TrimEnd();
                 str = str.Remove(str.LastIndexOf(","));
 
-                string queryString = $"EVALUATE SUMMARIZE('{tableName}', {str}, \"Group by measure\"," + madMeasure.Expression + ")";
+                string newTableName = (filterList.Count > 0) ? GetStringForGroupBy(tableName, filterList) : $"'{tableName}'";
+
+                string queryString = $"EVALUATE SUMMARIZE({newTableName}, {str}, \"Group by measure\"," + madMeasure.Expression + ")";
 
                 string msolapConnectionString = $"Provider=MSOLAP;Data Source={ssasServer};Initial Catalog={databaseName};User ID = {userId};Password = {algtelPassword};Persist Security Info=True; Impersonation Level=Impersonate;";
 
@@ -434,7 +459,7 @@ namespace DataBot
 
         public static SortedDictionary<string, double> ExecuteGroupByDad(List<string> slicerList, Dictionary<string, object> filterList, DeviceType deviceType)
         {
-            SortedDictionary<string, double> madDictionary = new SortedDictionary<string, double>();
+            SortedDictionary<string, double> dadDictionary = new SortedDictionary<string, double>();
 
             var algtelPassword = KeyVaultUtil.GetSecretInPlaintext(KeyVaultUtil.SharedAccountName);
 
@@ -460,7 +485,7 @@ namespace DataBot
 
                 string measureName = deviceType == DeviceType.Hololens ? "DAD (R28)" : "PC DAD (R28)";
 
-                var madMeasure = oasisProductEngagamentTable.Measures.Where(e => e.Name == measureName).FirstOrDefault();
+                var dadMeasure = oasisProductEngagamentTable.Measures.Where(e => e.Name == measureName).FirstOrDefault();
 
                 StringBuilder stbr = new StringBuilder();
 
@@ -474,7 +499,9 @@ namespace DataBot
                 str = str.TrimEnd();
                 str = str.Remove(str.LastIndexOf(","));
 
-                string queryString = $"EVALUATE SUMMARIZE('{tableName}', {str}, \"Group by measure\"," + madMeasure.Expression + ")";
+                string newTableName = (filterList.Count > 0) ? GetStringForGroupBy(tableName, filterList) : $"'{tableName}'";
+
+                string queryString = $"EVALUATE SUMMARIZE({newTableName}, {str}, \"Group by measure\"," + dadMeasure.Expression + ")";
 
                 string msolapConnectionString = $"Provider=MSOLAP;Data Source={ssasServer};Initial Catalog={databaseName};User ID = {userId};Password = {algtelPassword};Persist Security Info=True; Impersonation Level=Impersonate;";
 
@@ -500,14 +527,14 @@ namespace DataBot
 
                                 double value = double.Parse(reader[columns - 1].ToString());
                                 value = Math.Round(value, 0);
-                                madDictionary.Add(keyString, value);
+                                dadDictionary.Add(keyString, value);
                             }
                         }
                     }
                 }
             }
 
-            return madDictionary;
+            return dadDictionary;
         }
 
         public static double GetMadNumber(Dictionary<string, object> kvp, DeviceType deviceType)
