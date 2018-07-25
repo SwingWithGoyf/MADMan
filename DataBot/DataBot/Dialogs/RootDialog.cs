@@ -200,8 +200,11 @@
             {
                 try
                 {
-                    FilterResult currentFilterChoice = await result;
+                    // BUG here: don't handle switch to slicer properly being passed back
+                    // TODO: handle populating slicer dictionary as well
 
+                    FilterResult currentFilterChoice = await result;
+                    
                     if (!filterValues.ContainsKey(currentFilterChoice.filterName) && !currentFilterChoice.filterValue.Equals("clear", StringComparison.OrdinalIgnoreCase))
                     {
                         filterValues.Add(currentFilterChoice.filterName, currentFilterChoice.filterValue);

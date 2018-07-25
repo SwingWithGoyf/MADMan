@@ -20,15 +20,20 @@ namespace DataBot.Dialogs
     public class FilterPickerDialog : IDialog<FilterResult>
     {
         const string filteredText = " (filter applied)";
+        const string slicerText = " (filter applied)";
+
+        public const string slicerSwitchText = "Switch to add slicers";
+        public const string filterSwitchText = "Switch to add filters";
+
         protected FilterResult currentFilterChoice;
         protected Dictionary<string, object> filterValues;
         protected readonly List<string> filterOptions = new List<string>() { "Country", "Release", "Is Mainstream", "Customer Type", "Flight Ring" , "Hmd Manufacturer", "Form Factor" };
-        protected bool isFilter = true;
+        protected bool isFilterDialog = true;
 
-        public FilterPickerDialog(Dictionary<string, object> filterValues, bool isFilter)
+        public FilterPickerDialog(Dictionary<string, object> filterValues, bool isFilterDialog)
         {
             this.filterValues = filterValues;
-            this.isFilter = isFilter;
+            this.isFilterDialog = isFilterDialog;
         }
 
         public async Task StartAsync(IDialogContext context)
@@ -38,20 +43,31 @@ namespace DataBot.Dialogs
             {
                 if (filterValues.ContainsKey(filter))
                 {
-                    modifiedFilterOptions.Add($"{filter}{filteredText}");
+                    string modifiedFilter = isFilterDialog ? $"{filter}{filteredText}" : $"{filter}{slicerText}";
+                    modifiedFilterOptions.Add(modifiedFilter);
                 }
                 else
                 {
                     modifiedFilterOptions.Add(filter);
                 }
             }
+            if (isFilterDialog)
+            {
+                modifiedFilterOptions.Add(slicerSwitchText);
+            }
+            else
+            {
+                modifiedFilterOptions.Add(filterSwitchText);
+            }
             modifiedFilterOptions.Add("Quit");
+
+            string promptText = isFilterDialog ? "filters" : "slicers";
 
             PromptDialog.Choice<string>(
                 context: context,
                 resume: AfterFilterChoiceAsync,
                 options: modifiedFilterOptions,
-                prompt: "Please select from the options below to apply additional filters:",
+                prompt: $"Please select from the options below to apply additional {promptText}",
                 retry: "Sorry, didn't understand that input - try 'help' or 'quit'",
                 attempts: 3,
                 promptStyle: PromptStyle.Auto,
@@ -66,12 +82,25 @@ namespace DataBot.Dialogs
 
             if (!isQuit)
             {
-                this.currentFilterChoice.filterName = filter.Replace(filteredText, string.Empty);
-                context.Call(new FilterValueDialog(filter), this.FilterChoiceDialogResumeAfter);
+                if (filter.Equals(slicerSwitchText, StringComparison.OrdinalIgnoreCase) ||
+                    filter.Equals(filterSwitchText, StringComparison.OrdinalIgnoreCase))
+                {
+                    context.Done(new FilterResult() { filterName = filter, filterValue = string.Empty });
+                }
+                else if (isFilterDialog)
+                {
+                    this.currentFilterChoice.filterName = filter.Replace(filteredText, string.Empty);
+                    context.Call(new FilterValueDialog(filter), this.ResumeAfterFilterChoiceDialog);
+                }
+                else
+                {
+                    this.currentFilterChoice.filterName = filter.Replace(filteredText, string.Empty);
+                    context.Done(new FilterResult() { filterName = filter, filterValue = string.Empty, isFilter = false });
+                }
             }
         }
 
-        private async Task FilterChoiceDialogResumeAfter(IDialogContext context, IAwaitable<string> result)
+        private async Task ResumeAfterFilterChoiceDialog(IDialogContext context, IAwaitable<string> result)
         {
             try
             {
