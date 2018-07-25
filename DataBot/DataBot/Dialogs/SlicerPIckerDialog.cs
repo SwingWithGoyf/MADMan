@@ -42,14 +42,12 @@ namespace DataBot.Dialogs
             }
             modifiedSlicerOptions.Add(filterSwitchText);
             modifiedSlicerOptions.Add("Quit");
-
-            string promptText = "slicers";
-
+            
             PromptDialog.Choice<string>(
                 context: context,
                 resume: AfterSlicerChoiceAsync,
                 options: modifiedSlicerOptions,
-                prompt: $"Please select from the options below to apply additional {promptText}",
+                prompt: $"Please select from the options below to apply additional slicers (click an already applied slicer to remove it)",
                 retry: "Sorry, didn't understand that input - try 'help' or 'quit'",
                 attempts: 3,
                 promptStyle: PromptStyle.Auto,
@@ -60,6 +58,7 @@ namespace DataBot.Dialogs
         public async Task AfterSlicerChoiceAsync(IDialogContext context, IAwaitable<string> argument)
         {
             var filter = await argument;
+            filter = filter.Replace(slicerText, string.Empty);
             var isQuit = await new RootLuisDialog().HandleQuitAsync(context);
 
             if (!isQuit)

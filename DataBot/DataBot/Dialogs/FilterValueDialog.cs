@@ -12,10 +12,11 @@ namespace DataBot.Dialogs
     public class FilterValueDialog : IDialog<string>
     {
         private string filterName;
+        const string filteredText = " (filter applied)";
 
         public FilterValueDialog(string filterName)
         {
-            this.filterName = filterName;
+            this.filterName = filterName.Replace(filteredText, string.Empty);
         }
 
         public async Task StartAsync(IDialogContext context)
