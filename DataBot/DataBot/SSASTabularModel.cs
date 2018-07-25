@@ -71,12 +71,15 @@ namespace DataBot
             return dataSource;
         }
 
-        private static Microsoft.AnalysisServices.Tabular.Measure CreateMeasure(string measureName, string daxExpression)
+        private static Microsoft.AnalysisServices.Tabular.Measure CreateMeasure(string measureName, string daxExpression, string description = null, string displayFolder = null)
         {
             var measure = new Microsoft.AnalysisServices.Tabular.Measure()
             {
                 Name = measureName,
-                Expression = daxExpression
+                Expression = daxExpression,
+                Description = description,
+                DisplayFolder = displayFolder
+
             };
 
             return measure;
@@ -128,6 +131,56 @@ namespace DataBot
             };
 
             return relationship;
+        }
+
+        public static void CreateNewMeasure(string measureName, string measureDescription, Dictionary<string, object> filterKeyValuePairs, DeviceType deviceType)
+        {
+            var algtelPassword = KeyVaultUtil.GetSecretInPlaintext(KeyVaultUtil.SharedAccountName);
+
+            string userId = KeyVaultUtil.SharedAccountName + "@microsoft.com";
+
+            string ssasServer = "asazure://centralus.asazure.windows.net/datapipelinesaas";
+
+            string ConnectionString = $"Password={algtelPassword};Persist Security Info=True;User ID={userId};Data Source = " + ssasServer + ";";
+
+            using (Microsoft.AnalysisServices.Tabular.Server server = new Microsoft.AnalysisServices.Tabular.Server())
+            {
+                server.Connect(ConnectionString);
+
+                string databaseName = deviceType == DeviceType.Hololens ? "HoloLensHackathon" : "OasisHackathon";
+
+                Microsoft.AnalysisServices.Tabular.Database tabularDatabase = null;
+
+                tabularDatabase = server.Databases.FindByName(databaseName);
+
+                string tableName = deviceType == DeviceType.Hololens ? "HoloLens Product Engagement" : "Oasis Product Engagement";
+
+                var oasisProductEngagamentTable = tabularDatabase.Model.Tables.Find(tableName);
+
+                var newMadMeasure = oasisProductEngagamentTable.Measures.Where(e => e.Name == measureName).FirstOrDefault();
+
+                if (newMadMeasure != null)
+                {
+                    oasisProductEngagamentTable.Measures.Remove(newMadMeasure);
+                }
+
+                StringBuilder stbr = new StringBuilder();
+                foreach (var k in filterKeyValuePairs)
+                {
+                    stbr.Append($"'{tableName}'[" + k.Key + "] = \"" + k.Value + "\"");
+                    stbr.Append(" , ");
+                }
+
+                string str = stbr.ToString();
+                str = str.TrimEnd();
+                str = str.Remove(str.LastIndexOf(","));
+
+                string newMadMeasureExpression = $"CALCULATE ( [Unique PCs],  DATESBETWEEN(Dates[Date ], MAX(Dates[Current Period Start]), MAX(Dates[Date ])), {str})";
+
+                oasisProductEngagamentTable.Measures.Add(CreateMeasure(measureName, newMadMeasureExpression, measureDescription, @"[Measures]\PC Counting"));
+
+                tabularDatabase.Model.SaveChanges();
+            }
         }
 
         public static double ExecuteQuery(string queryString, string userId, string password, string tableName, string ssasServer, Dictionary<string, object> kvp, string databaseName)

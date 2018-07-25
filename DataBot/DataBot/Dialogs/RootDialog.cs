@@ -42,50 +42,93 @@
         [LuisIntent("show.mad")]
         public async Task ShowMad(IDialogContext context, IAwaitable<IMessageActivity> activity, LuisResult result)
         {
-            var message = await activity;
-            message.Text = $"Let me get the MAD for you...";
-            await context.PostAsync(message.Text);
+            string query = result.Query;
 
-            if (result.TryFindEntity(DeviceTypeEntity, out deviceType))
+            if (query.ToLower().Contains("measure"))
             {
-                deviceType.Type = "DeviceType";
-            }
+                var message = await activity;
+                message.Text = $"Let us create the measure for you...";
+                await context.PostAsync(message.Text);
 
-            if (string.Equals(deviceType.Entity, "vr", StringComparison.OrdinalIgnoreCase) || string.Equals(deviceType.Entity, "oasis", StringComparison.OrdinalIgnoreCase))
-            {
-                isCurrentContextOasis = true;
-                var mad = SSASTabularModel.GetMadNumber(new Dictionary<string, object>(), DeviceType.Oasis);
+                if (result.TryFindEntity(DeviceTypeEntity, out deviceType))
+                {
+                    deviceType.Type = "DeviceType";
+                }
 
-                var resultMessage = context.MakeMessage();
+                if (string.Equals(deviceType.Entity, "vr", StringComparison.OrdinalIgnoreCase) || string.Equals(deviceType.Entity, "oasis", StringComparison.OrdinalIgnoreCase))
+                {
+                    context.UserData.Clear();
 
-                resultMessage.Text = $"Mad for Oasis is **{mad}**";
+                    context.UserData.SetValue(deviceTypeKey, "Oasis");
+                    context.UserData.SetValue(metricTypeKey, "mad");
 
-                context.UserData.Clear();
+                    context.Call(new FilterPickerDialog(filterValues), this.ResumeAfterFilterPickerDialogWithMadMeasure);
+                }
+                else
+                {
+                    var mad = SSASTabularModel.GetMadNumber(new Dictionary<string, object>(), DeviceType.Hololens);
 
-                context.UserData.SetValue(deviceTypeKey, "Oasis");
-                context.UserData.SetValue(metricTypeKey, "mad");
+                    var resultMessage = context.MakeMessage();
 
-                await context.PostAsync(resultMessage);
+                    resultMessage.Text = $"Mad for Hololens is {mad}";
 
-                context.Call(new RefinementPickerDialog(filterValues, slicerValues, firstRun: true, showFilterDialog: true, isOasis: isCurrentContextOasis), this.ResumeAfterFilterDialog);
+                    context.UserData.Clear();
+
+                    context.UserData.SetValue(deviceTypeKey, "Hololens");
+                    context.UserData.SetValue(metricTypeKey, "mad");
+
+                    await context.PostAsync(resultMessage);
+
+                    context.Call(new FilterPickerDialog(filterValues), this.ResumeAfterFilterPickerDialogWithMadMeasure);
+                }
             }
             else
-            {
-                isCurrentContextOasis = false;
-                var mad = SSASTabularModel.GetMadNumber(new Dictionary<string, object>(), DeviceType.Hololens);
+            { 
+                var message = await activity;
+                message.Text = $"Let me get the MAD for you...";
+                await context.PostAsync(message.Text);
 
-                var resultMessage = context.MakeMessage();
+                if (result.TryFindEntity(DeviceTypeEntity, out deviceType))
+                {
+                    deviceType.Type = "DeviceType";
+                }
 
-                resultMessage.Text = $"Mad for Hololens is **{mad}**";
+                if (string.Equals(deviceType.Entity, "vr", StringComparison.OrdinalIgnoreCase) || string.Equals(deviceType.Entity, "oasis", StringComparison.OrdinalIgnoreCase))
+                {
+                    isCurrentContextOasis = true;
+                    var mad = SSASTabularModel.GetMadNumber(new Dictionary<string, object>(), DeviceType.Oasis);
 
-                context.UserData.Clear();
+                    var resultMessage = context.MakeMessage();
 
-                context.UserData.SetValue(deviceTypeKey, "Hololens");
-                context.UserData.SetValue(metricTypeKey, "mad");
+                    resultMessage.Text = $"Mad for Oasis is **{mad}**";
 
-                await context.PostAsync(resultMessage);
+                    context.UserData.Clear();
 
-                context.Call(new RefinementPickerDialog(filterValues, slicerValues, firstRun: true, showFilterDialog: true, isOasis: isCurrentContextOasis), this.ResumeAfterFilterDialog);
+                    context.UserData.SetValue(deviceTypeKey, "Oasis");
+                    context.UserData.SetValue(metricTypeKey, "mad");
+
+                    await context.PostAsync(resultMessage);
+
+                    context.Call(new RefinementPickerDialog(filterValues, slicerValues, firstRun: true, showFilterDialog: true, isOasis: isCurrentContextOasis), this.ResumeAfterFilterDialog);
+                }
+                else
+                {
+                    isCurrentContextOasis = false;
+                    var mad = SSASTabularModel.GetMadNumber(new Dictionary<string, object>(), DeviceType.Hololens);
+
+                    var resultMessage = context.MakeMessage();
+
+                    resultMessage.Text = $"Mad for Hololens is **{mad}**";
+
+                    context.UserData.Clear();
+
+                    context.UserData.SetValue(deviceTypeKey, "Hololens");
+                    context.UserData.SetValue(metricTypeKey, "mad");
+
+                    await context.PostAsync(resultMessage);
+
+                    context.Call(new RefinementPickerDialog(filterValues, slicerValues, firstRun: true, showFilterDialog: true, isOasis: isCurrentContextOasis), this.ResumeAfterFilterDialog);
+                }
             }
         }
 
@@ -408,6 +451,72 @@
         private async Task LoopFilterSlicerAsync(IDialogContext context, bool isFilterDialog = true)
         {
             context.Call(new RefinementPickerDialog(filterValues, slicerValues, firstRun: false, showFilterDialog: isFilterDialog, isOasis: isCurrentContextOasis), this.ResumeAfterFilterDialog);
+        }
+
+        private async Task LoopFilterAsyncWithMeasure(IDialogContext context)
+        {
+            context.Call(new FilterPickerDialog(filterValues, isCurrentContextOasis), this.ResumeAfterFilterPickerDialogWithMadMeasure);
+        }
+
+        private async Task ResumeAfterFilterPickerDialogWithMadMeasure(IDialogContext context, IAwaitable<FilterResult> result)
+        {
+            try
+            {
+                try
+                {
+                    var isQuit = await HandleQuitAsync(context);
+
+                    if (!isQuit)
+                    {
+                        FilterResult currentFilterChoice = await result;
+
+                        if (!filterValues.ContainsKey(currentFilterChoice.filterName) && !currentFilterChoice.filterValue.Equals("clear", StringComparison.OrdinalIgnoreCase))
+                        {
+                            filterValues.Add(currentFilterChoice.filterName, currentFilterChoice.filterValue);
+                        }
+                        else if (currentFilterChoice.filterValue.Equals("clear", StringComparison.OrdinalIgnoreCase))
+                        {
+                            filterValues.Remove(currentFilterChoice.filterName);
+                            await context.PostAsync($"Removing filter {currentFilterChoice.filterName}");
+                        }
+                        else
+                        {
+                            filterValues[currentFilterChoice.filterName] = currentFilterChoice.filterValue;
+                        }
+
+                        string filterString = "Your current filters are: ";
+                        foreach (var filter in filterValues.Keys)
+                        {
+                            filterString += $" filter = {filter}, value = {filterValues[filter]}" + Environment.NewLine;
+                        }
+
+                        await context.PostAsync("Please wait while we apply the filters.");
+
+                        DeviceType dt = string.Equals(context.UserData.GetValue<string>(deviceTypeKey), "oasis", StringComparison.OrdinalIgnoreCase) ? DeviceType.Oasis : DeviceType.Hololens;
+                        isCurrentContextOasis = (dt == DeviceType.Oasis);
+
+                        string madString = string.Equals(context.UserData.GetValue<string>(metricTypeKey), "mad", StringComparison.OrdinalIgnoreCase) ? "MAD" : "DAD";
+
+                        string measureName = string.Join(",", filterValues.Values);
+
+                        SSASTabularModel.CreateNewMeasure($"{madString} - " + measureName, measureName, filterValues, DeviceType.Oasis);
+
+                        var resultMessage = context.MakeMessage();
+
+                        resultMessage.Text = $"New measure is created and the name of the measure is \"{madString} - {measureName}\".";
+
+                        await context.PostAsync(resultMessage);
+                    }
+                }
+                catch (TooManyAttemptsException)
+                {
+                    await context.PostAsync("I'm sorry, I'm having issues understanding you. Let's try again.");
+                }
+            }
+            finally
+            {
+                await LoopFilterAsyncWithMeasure(context);
+            }
         }
 
         private async Task ResumeAfterOasisMadDialog(IDialogContext context, IAwaitable<FilterResult> result)
