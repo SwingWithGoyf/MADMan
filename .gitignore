@@ -5,3 +5,5 @@ packages/
 *.csproj.user
 .vs/
 /DataBot/DataBot/Properties/PublishProfiles/madman - Web Deploy.pubxml
+Web.config
+/DataBot/DataBot/MADManAuth.bot

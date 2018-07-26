@@ -111,6 +111,9 @@
             message.Text = $"Let me get the MAD for you...";
             await context.PostAsync(message.Text);
 
+            //var text = "<table><tr><th>heading 1</th><th>heading 2</th></tr><tr><td>row 1 column 1</td><td>row 1 column 2</td></tr><tr><td>row 2 column 1</td><td>row 2 column 2</td></tr></table>";
+            //await context.PostAsync(text);
+
             if (result.TryFindEntity(DeviceTypeEntity, out deviceType))
             {
                 deviceType.Type = "DeviceType";
@@ -457,40 +460,33 @@
                 string tableString = string.Empty;
 
                 // first build the header row
-                tableString = "| ";
+                tableString = "<table cellpadding=1 cellspacing=1><span <tr><th> ";
                 foreach (string columnName in headers)
                 {
-                    tableString += columnName + " |";
+                    tableString += columnName + " </th><th>&nbsp;";
                 }
-                tableString += " Value |" + Environment.NewLine;
-
-                tableString += "| ";
-                foreach (string columnName in headers)
-                {
-                    tableString += ":---: |";
-                }
-                tableString += " :---: |" + Environment.NewLine;
+                tableString += "&nbsp;Value </th></tr>" + Environment.NewLine;
 
                 // then add the body rows
                 foreach (var groupByColumns in groupByData.Keys)
                 {
-                    tableString += "| ";
+                    tableString += "<tr><td>";
                     foreach (var cellValue in groupByColumns.Split(','))
                     {
-                        tableString += cellValue + " |";
+                        tableString += cellValue + " </td><td>&nbsp;";
                     }
 
-                    tableString += $" {groupByData[groupByColumns]} |" + Environment.NewLine;
+                    tableString += $"&nbsp;{groupByData[groupByColumns]} </td></tr>" + Environment.NewLine;
                     totalSoFar += groupByData[groupByColumns];
                 }
 
                 // finally, add a total row
-                tableString += "| **TOTAL**";
+                tableString += "<tr><td> <b>TOTAL<b>";
                 foreach (string columnName in headers)
                 {
-                    tableString += " |";
+                    tableString += " </td><td>&nbsp;";
                 }
-                tableString += $"**{totalSoFar}** |" + Environment.NewLine;
+                tableString += $"&nbsp;<b>{totalSoFar}</b> </td></tr></table>" + Environment.NewLine;
                 return tableString;
             }
         }
