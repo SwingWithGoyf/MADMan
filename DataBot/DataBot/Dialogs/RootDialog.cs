@@ -43,7 +43,7 @@
         public async Task CreateMadMeasure(IDialogContext context, IAwaitable<IMessageActivity> activity, LuisResult result)
         {
             var message = await activity;
-            message.Text = $"Let us create the measure for you...";
+            message.Text = $"Let me create the measure for you...";
             await context.PostAsync(message.Text);
 
             if (result.TryFindEntity(DeviceTypeEntity, out deviceType))
@@ -75,7 +75,7 @@
         public async Task CreateDadMeasure(IDialogContext context, IAwaitable<IMessageActivity> activity, LuisResult result)
         {
             var message = await activity;
-            message.Text = $"Let us create the measure for you...";
+            message.Text = $"Let me create the measure for you...";
             await context.PostAsync(message.Text);
 
             if (result.TryFindEntity(DeviceTypeEntity, out deviceType))
